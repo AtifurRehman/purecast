@@ -4,7 +4,9 @@ export 'src/cast_sender.dart';
 export 'src/cast_media/cast_media_status.dart';
 export 'src/cast_session.dart';
 export 'src/cast_device.dart';
-
+export 'src/cast_media/cast_media_track.dart';
+export 'src/cast_media/cast_media_text_track_style.dart';
+export 'src/utils/rfc5646_tags.dart';
 export 'src/search_devices.dart';
 
 export 'src/cast_media/cast_media.dart';

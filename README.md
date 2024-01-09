@@ -26,25 +26,25 @@ Convert each media URL into a `CastMedia` instance. These instances represent th
 
 ```dart
 CastMediaMetadata metadata = CastMediaMetadata(title: "Loading Title Metadata");
-CastMedia media = CastMedia(contentId: "http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4", metadata:metadata);
+CastMedia media = CastMedia(url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4", metadata:metadata);
 ```
 
 ## Step 2: Specify Chromecast Device
 
-Search for available Chromecast devices on the network:
+Search for available Chromecast devices on the network using [multicast DNS](https://github.com/flutter/packages/tree/main/packages/multicast_dns) :
 
 ```dart
 List<CastDevice> devices = await PureCast.searchDevices();
 ```
 
-Or directly specify a Chromecast device:
+Or directly specify a device/service:
 
 ```dart
 CastDevice device =
-        await CastDevice.create(host: host, port: port);
+        await CastDevice.create(host: host, port: port, type: '_googlecast._tcp');
 ```
 
-## Step 3: Instantiate the Chromecast Sender Class and Connect
+## Step 3: Instantiate the Cast Sender Class and start the connection
 
 After instanciating the CastDevice instance, instantiate the CastSender object, responsible for controlling and listening for cast session updates
 
@@ -52,12 +52,12 @@ After instanciating the CastDevice instance, instantiate the CastSender object, 
 CastSender castSender = CastSender(
     device,
   );
-await castSender.connect();
+bool connected = await castSender.connect();
 ```
 
 ## Step 4: Load CastMedia playlist
 
-Now, you can load a CastMedia or multiple ones, and send it to the Chromecast
+Now, you can use your CastSender to load a CastMedia, or multiple ones, and send it to the Chromecast
 
 ```dart
 castSender.load(media);

@@ -6,8 +6,13 @@ class CastMedia {
   CastMediaMetadata metadata;
   bool autoPlay = true;
   double position;
+  double? playbackRate;
   String? contentType;
   double? duration;
+  Map<String, dynamic>? customData;
+  CastMediaTextTrackStyle? textTrackStyle;
+  List<CastMediaTrack>? tracks;
+  List<int>? activeTrackIds;
   CastStreamType streamType;
 
   /// Creates the [CastMedia] media that will be sent to the [CastDevice].
@@ -26,6 +31,11 @@ class CastMedia {
     this.duration,
     this.autoPlay = true,
     this.position = 0.0,
+    this.customData,
+    this.playbackRate,
+    this.tracks,
+    this.textTrackStyle,
+    this.activeTrackIds,
     this.streamType = CastStreamType.BUFFERED,
   }) {
     if (contentType == null) {
@@ -47,6 +57,13 @@ class CastMedia {
         'contentType': contentType!,
         'streamType': streamType.value,
         if (duration != null) 'duration': duration,
+        if (customData != null) 'customData': customData,
+        if (playbackRate != null) 'playbackRate': playbackRate,
+        if (textTrackStyle != null)
+          'textTrackStyle': textTrackStyle!.toChromeCastMap(),
+        if (tracks != null)
+          'tracks': tracks!.map((e) => e.toChromeCastMap()).toList(),
+        if (activeTrackIds != null) 'activeTrackIds': activeTrackIds,
         'metadata': metadata.toChromeCastMap(),
       }
     };

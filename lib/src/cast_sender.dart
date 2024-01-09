@@ -190,6 +190,23 @@ class CastSender extends Object {
     _castMediaAction('VOLUME', map);
   }
 
+  void setPlayBackRate(double rate) {
+    Map<String, dynamic> map = {'playbackRate': rate};
+    _castMediaAction('SET_PLAYBACK_RATE', map);
+  }
+
+  void setSubtitles(int trackId) {
+    Map<String, dynamic> map = {
+      'activeTrackIds': [trackId]
+    };
+    _castMediaAction('EDIT_TRACKS_INFO', map);
+  }
+
+  void disableSubtitles() {
+    Map<String, dynamic> map = {'activeTrackIds': []};
+    _castMediaAction('EDIT_TRACKS_INFO', map);
+  }
+
   CastSession? get castSession => _castSession;
 
   // private
