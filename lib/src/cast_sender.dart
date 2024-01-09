@@ -57,12 +57,11 @@ class CastSender extends Object {
 
     _connectionChannel!.sendMessage({'type': 'CONNECT'});
 
-    // start heartbeat
-    _heartbeatTick();
+    _startHeartbeatPingPong();
 
     // start status tick
     // TODO: only start receiver status tick when there are subscriptions to it
-//    _receiverStatusTick();
+    // _receiverStatusTick();
 
     return true;
   }
@@ -306,6 +305,10 @@ class CastSender extends Object {
     log('Received Socket Data: ${payloadMap.toString()}');
     String type = payloadMap['type'];
     switch (type) {
+      case 'PING':
+        if (_heartbeatChannel != null)
+          _heartbeatChannel!.sendMessage({'type': 'PONG'});
+        break;
       case 'CLOSE':
         _dispose();
         connectionDidClose = true;
@@ -332,7 +335,7 @@ class CastSender extends Object {
     if (null == _mediaChannel &&
         true == payload['status']?.containsKey('applications')) {
       _castSession!.castStatus =
-          CastStatus.fromChromeCastMap(payload['status']);
+          CastDeviceStatus.fromChromeCastMap(payload['status']);
       // re-create the channel with the transportId the chromecast just sent us
       if (false == _castSession?.isConnected) {
         _castSession = _castSession!
@@ -438,12 +441,10 @@ class CastSender extends Object {
     }
   }
 
-  void _heartbeatTick() {
+  void _startHeartbeatPingPong() {
     if (null != _heartbeatChannel) {
       _heartbeatChannel!.sendMessage({'type': 'PING'});
-
-//      _heartbeatTimer = Timer(Duration(seconds: 5), _heartbeatTick);
-      Timer(Duration(seconds: 5), _heartbeatTick);
+      Timer(Duration(seconds: 30), _startHeartbeatPingPong);
     }
   }
 

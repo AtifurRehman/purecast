@@ -1,17 +1,17 @@
-class CastApplicationNamespace {
+class CastDeviceApplicationNamespace {
   String name;
-  CastApplicationNamespace({
+  CastDeviceApplicationNamespace({
     required this.name,
   });
 }
 
-enum CastApplicationType {
+enum CastDeviceApplicationType {
   WEB('WEB'),
   ANDROID_TV('ANDROID_TV');
 
   /// Defines the text track edge (border) type.
-  const CastApplicationType(this.value);
-  static CastApplicationType fromValue(String value) {
+  const CastDeviceApplicationType(this.value);
+  static CastDeviceApplicationType fromValue(String value) {
     switch (value) {
       case 'WEB':
         return WEB;
@@ -25,9 +25,9 @@ enum CastApplicationType {
   final String value;
 }
 
-class CastApplication {
+class CastDeviceApplication {
   String appId;
-  CastApplicationType appType;
+  CastDeviceApplicationType appType;
   String iconUrl;
   String displayName;
   String? sessionId;
@@ -36,8 +36,8 @@ class CastApplication {
   bool isIdleScreen;
   bool launchedFromCloud;
   String? universalAppId;
-  List<CastApplicationNamespace>? namespaces;
-  CastApplication({
+  List<CastDeviceApplicationNamespace>? namespaces;
+  CastDeviceApplication({
     required this.appId,
     required this.appType,
     required this.iconUrl,
@@ -67,17 +67,17 @@ class CastApplication {
     };
   }
 
-  static CastApplication fromChromeCastMap(dynamic map) {
-    return CastApplication(
+  static CastDeviceApplication fromChromeCastMap(dynamic map) {
+    return CastDeviceApplication(
       appId: map['appId'],
-      appType: CastApplicationType.fromValue(map['appType'] as String),
+      appType: CastDeviceApplicationType.fromValue(map['appType'] as String),
       displayName: map['displayName'],
       iconUrl: map['iconUrl'],
       isIdleScreen: map['isIdleScreen'],
       launchedFromCloud: map['launchedFromCloud'],
       namespaces: map['namespaces'] != null
-          ? List<CastApplicationNamespace>.from(
-              map['namespaces'].map((e) => CastApplicationNamespace(name: e)))
+          ? List<CastDeviceApplicationNamespace>.from(map['namespaces']
+              .map((e) => CastDeviceApplicationNamespace(name: e)))
           : null,
       sessionId: map['sessionId'],
       statusText: map['statusText'],

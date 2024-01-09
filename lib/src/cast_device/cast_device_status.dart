@@ -1,26 +1,26 @@
 import 'package:purecast/purecast.dart';
-import 'package:purecast/src/cast_application.dart';
+import 'package:purecast/src/cast_device/cast_device_application.dart';
 
 /// The current ChromeCast device status.
-class CastStatus {
+class CastDeviceStatus {
   CastVolume? volume;
-  List<CastApplication>? applications;
+  List<CastDeviceApplication>? applications;
   bool? activeInput;
   bool? standBy;
 
-  /// Creates the [CastStatus] status that represents the current ChromeCast device status.
-  CastStatus({
+  /// Creates the [CastDeviceStatus] status that represents the current ChromeCast device status.
+  CastDeviceStatus({
     this.volume,
     this.applications,
     this.activeInput,
     this.standBy,
   });
 
-  factory CastStatus.fromChromeCastMap(Map map) {
-    return CastStatus(
+  factory CastDeviceStatus.fromChromeCastMap(Map map) {
+    return CastDeviceStatus(
       volume: CastVolume.fromChromeCastMap(map['volume']),
-      applications: List<CastApplication>.from(
-          map['applications'].map((e) => CastApplication.fromChromeCastMap(e))),
+      applications: List<CastDeviceApplication>.from(map['applications']
+          .map((e) => CastDeviceApplication.fromChromeCastMap(e))),
       activeInput: map['activeInput'],
       standBy: map['standBy'],
     );
@@ -38,6 +38,6 @@ class CastStatus {
 
   @override
   String toString() {
-    return 'CastStatus{volume: $volume, applications: $applications, activeInput: $activeInput, standBy: $standBy}';
+    return 'CastDeviceStatus{volume: $volume, applications: $applications, activeInput: $activeInput, standBy: $standBy}';
   }
 }

@@ -4,7 +4,7 @@ class CastSession {
   String? sourceId;
   String? destinationId;
   CastMediaStatus? castMediaStatus;
-  CastStatus? castStatus;
+  CastDeviceStatus? castStatus;
   bool isConnected;
   bool isReadyForMedia = false;
 
