@@ -23,6 +23,12 @@ class CastMedia {
   /// * [autoPlay] - If the content should start playing automatically.
   /// * [position] - The position in seconds where the content should start playing.
   /// * [streamType] - The [CastStreamType] stream type of the content.
+  /// * [duration] - The duration of the content in seconds.
+  /// * [customData] - Optional. Custom data.
+  /// * [playbackRate] - Optional. The playback rate of the content.
+  /// * [tracks] - Optional. The list of [CastMediaTrack] tracks of the content.
+  /// * [textTrackStyle] - Optional. The [CastMediaTextTrackStyle] style of the text tracks.
+  /// * [activeTrackIds] - Optional. The list of active track ids.
   ///
   CastMedia({
     required this.url,

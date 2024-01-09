@@ -5,6 +5,7 @@ enum TextTrackEdgeType {
   RAISED('RAISED'),
   DEPRESSED('DEPRESSED');
 
+  /// Defines the text track edge (border) type.
   const TextTrackEdgeType(this.value);
   final String value;
 }
@@ -18,6 +19,7 @@ enum TextTrackFontGenericFamily {
   CURSIVE('CURSIVE'),
   SMALL_CAPITALS('SMALL_CAPITALS');
 
+  /// Generic font family to be used if the font is not defined in the text track.
   const TextTrackFontGenericFamily(this.value);
   final String value;
 }
@@ -28,6 +30,7 @@ enum TextTrackFontStyle {
   BOLD_ITALIC('BOLD_ITALIC'),
   ITALIC('ITALIC');
 
+  /// The text track font style.
   const TextTrackFontStyle(this.value);
   final String value;
 }
@@ -37,6 +40,7 @@ enum TextTrackWindowType {
   NORMAL('NORMAL'),
   ROUNDED_CORNERS('ROUNDED_CORNERS');
 
+  /// The window concept as defined in CEA-608 and CEA-708. In WebVTT, this is called a region.
   const TextTrackWindowType(this.value);
   final String value;
 }
@@ -59,6 +63,19 @@ class CastMediaTextTrackStyle {
       windowRoundedCornerRadius; // Absolute radius of the rounded corners of the window, in pixels
   TextTrackWindowType? windowType; // Window type
 
+  /// Creates a [CastMediaTextTrackStyle] to me used with a text track [CastMediaTrack]
+  /// * [backgroundColor] - 32-bit RGBA color, represented as #RRGGBBAA
+  /// * [customData] - Custom data
+  /// * [edgeColor] - RGBA color for the edge
+  /// * [edgeType] - Edge type
+  /// * [fontFamily] - Font family
+  /// * [fontGenericFamily] - Generic font family to be used if the font is not defined in the text track.
+  /// * [fontScale] - Font-scaling factor, default is 1
+  /// * [fontStyle] - Font style
+  /// * [foregroundColor] - Foreground 32-bit RGBA color, represented as #RRGGBBAA
+  /// * [windowColor] - 32-bit RGBA color for the window, represented as #RRGGBBAA
+  /// * [windowRoundedCornerRadius] - Absolute radius of the rounded corners of the window, in pixels. This value will be ignored if windowType is not ROUNDED_CORNERS.
+  /// * [windowType] - Window type
   /// Read: https://github.com/thibauts/node-castv2-client/wiki/How-to-use-subtitles-with-the-DefaultMediaReceiver-app
   CastMediaTextTrackStyle({
     this.backgroundColor,
