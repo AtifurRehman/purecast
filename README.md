@@ -1,6 +1,6 @@
 # PureCast: A Dart Package for Chromecast Integration
 
-Welcome to **PureCast**, a pure Dart package designed for seamless discovery, connection, and video playback on Chromecast devices.
+Welcome to **PureCast**, a pure Dart package designed for seamless discovery, connection, and media playback on Chromecast devices.
 
 This package is inspired by and based on the foundational work available at [terrabythia/dart_chromecast](https://github.com/terrabythia/dart_chromecast). Further modifications are based of [vitalidze/chromecast-java-api-v2](https://github.com/vitalidze/chromecast-java-api-v2)
 

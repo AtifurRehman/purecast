@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:purecast/purecast.dart';
+
+/// The current ChromeCast media status.
 class CastMediaStatus {
   dynamic _sessionId;
 
@@ -13,11 +16,11 @@ class CastMediaStatus {
   final bool _hasError;
   final bool _isLoading;
   final bool _isBuffering;
-  final double? _volume;
+  final CastVolume? _volume;
   final double? _position;
   final Map? _media;
 
-  CastMediaStatus.fromChromeCastMediaStatus(Map mediaStatus)
+  CastMediaStatus.fromChromeCastMap(Map mediaStatus)
       : _sessionId = mediaStatus['mediaSessionId'],
         _nativeStatus = mediaStatus['playerState'],
         _isIdle = 'IDLE' == mediaStatus['playerState'],
@@ -34,7 +37,7 @@ class CastMediaStatus {
         _hasError = 'IDLE' == mediaStatus['playerState'] &&
             'ERROR' == mediaStatus['idleReason'],
         _volume = null != mediaStatus['volume']
-            ? mediaStatus['volume']['level'].toDouble()
+            ? CastVolume.fromChromeCastMap(mediaStatus['volume'])
             : null,
         _position = mediaStatus['currentTime'].toDouble(),
         _media = mediaStatus['media'];
@@ -61,7 +64,7 @@ class CastMediaStatus {
 
   bool get hasError => _hasError;
 
-  double? get volume => _volume;
+  CastVolume? get volume => _volume;
 
   double? get position => _position;
 
@@ -83,7 +86,7 @@ class CastMediaStatus {
       'hasError': _hasError,
       'volume': _volume,
       'position': _position,
-      'media': _media
+      'media': _media,
     });
   }
 }

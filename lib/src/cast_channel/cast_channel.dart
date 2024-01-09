@@ -24,7 +24,7 @@ abstract class CastChannel {
         _destinationId = destinationId,
         _namespace = namespace;
 
-  void sendMessage(Map payload) async {
+  void sendMessage(Map payload) {
     payload['requestId'] = _requestId;
 
     CastMessage castMessage = CastMessage();
@@ -49,7 +49,6 @@ abstract class CastChannel {
     }
 
     _socket!.add(fullData);
-
     _requestId++;
   }
 }

@@ -1,7 +1,3 @@
-/**
- * TODO:
- * - volume, treble, bass?
- */
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -120,12 +116,63 @@ class CastSender extends Object {
     return true;
   }
 
-  void launch([String? appId]) {
-    if (null != _receiverChannel) {
-      _receiverChannel!.sendMessage({
-        'type': 'LAUNCH',
-        'appId': appId ?? 'CC1AD845',
-      });
+  void launch({String? appId}) {
+    _castReceiverAction('LAUNCH', {
+      'appId': appId ?? 'CC1AD845',
+    });
+  }
+
+  //TODO: Actually test this
+  /// ChromeCast does not allow you to jump levels too quickly to avoid blowing speakers.
+  /// This method will increase/decrease the volume by the increment amount until it reaches the
+  /// desired level.
+  Future<void> setVolumeByIncrement(double level) async {
+    if (_castSession?.castMediaStatus != null) {
+      CastVolume? v = _castSession?.castMediaStatus?.volume;
+      if (v == null) {
+        return;
+      }
+      if (v.increment <= 0) {
+        return;
+      }
+      // With floating points we always have minor decimal variations, using the Math.min/max
+      // works around this issue
+
+      // Increase volume
+      if (level > v.level) {
+        while (v!.level < level) {
+          v = _castSession?.castMediaStatus?.volume;
+          if (v == null) {
+            await _waitForMediaStatus();
+            if (_castSession?.castMediaStatus == null) {
+              return;
+            }
+            v = _castSession?.castMediaStatus?.volume;
+            if (v == null) {
+              return;
+            }
+          }
+          v.level = math.min(v.level + v.increment, level);
+          _castReceiverAction('SET_VOLUME', v.toChromeCastMap());
+        }
+        // Decrease Volume
+      } else if (level < v.level) {
+        while (v!.level > level) {
+          v = _castSession?.castMediaStatus?.volume;
+          if (v == null) {
+            await _waitForMediaStatus();
+            if (_castSession?.castMediaStatus == null) {
+              return;
+            }
+            v = _castSession?.castMediaStatus?.volume;
+            if (v == null) {
+              return;
+            }
+          }
+          v.level = math.max(v.level - v.increment, level);
+          _castReceiverAction('SET_VOLUME', v.toChromeCastMap());
+        }
+      }
     }
   }
 
@@ -151,6 +198,16 @@ class CastSender extends Object {
       _mediaChannel!.sendMessage(params
         ..addAll({
           'mediaSessionId': _castSession!.castMediaStatus!.sessionId,
+          'type': type,
+        }));
+    }
+  }
+
+  void _castReceiverAction(type, [params]) {
+    if (null == params) params = {};
+    if (null != _receiverChannel) {
+      _receiverChannel!.sendMessage(params
+        ..addAll({
           'type': type,
         }));
     }
@@ -185,6 +242,7 @@ class CastSender extends Object {
     _castMediaAction('SEEK', map);
   }
 
+  //TODO: Actually test this
   void setVolume(double volume) {
     Map<String, dynamic> map = {'volume': math.min(volume, 1)};
     _castMediaAction('VOLUME', map);
@@ -245,15 +303,27 @@ class CastSender extends Object {
     CastMessage message = CastMessage.fromBuffer(slice);
     // handle the message
     Map<String, dynamic> payloadMap = jsonDecode(message.payloadUtf8);
-    log(payloadMap['type']);
-    if ('CLOSE' == payloadMap['type']) {
-      _dispose();
-      connectionDidClose = true;
-    }
-    if ('RECEIVER_STATUS' == payloadMap['type']) {
-      _handleReceiverStatus(payloadMap);
-    } else if ('MEDIA_STATUS' == payloadMap['type']) {
-      _handleMediaStatus(payloadMap);
+    log('Received Socket Data: ${payloadMap.toString()}');
+    String type = payloadMap['type'];
+    switch (type) {
+      case 'CLOSE':
+        _dispose();
+        connectionDidClose = true;
+        break;
+      case 'RECEIVER_STATUS':
+        _handleReceiverStatus(payloadMap);
+        break;
+      case 'MEDIA_STATUS':
+        _handleMediaStatus(payloadMap);
+        break;
+      case 'LOAD_FAILED':
+        log('Load failed: ${payloadMap.toString()}');
+        break;
+      case 'LAUNCH_ERROR':
+        log('Launch error: ${payloadMap.toString()}');
+        break;
+      default:
+        log('Unknown message type received: $type, ${payloadMap.toString()}');
     }
   }
 
@@ -261,6 +331,8 @@ class CastSender extends Object {
     log(payload.toString());
     if (null == _mediaChannel &&
         true == payload['status']?.containsKey('applications')) {
+      _castSession!.castStatus =
+          CastStatus.fromChromeCastMap(payload['status']);
       // re-create the channel with the transportId the chromecast just sent us
       if (false == _castSession?.isConnected) {
         _castSession = _castSession!
@@ -304,7 +376,7 @@ class CastSender extends Object {
 
       if (payload['status'].length > 0) {
         _castSession!.castMediaStatus =
-            CastMediaStatus.fromChromeCastMediaStatus(payload['status'][0]);
+            CastMediaStatus.fromChromeCastMap(payload['status'][0]);
 
         log('Media status ${_castSession!.castMediaStatus.toString()}');
 
