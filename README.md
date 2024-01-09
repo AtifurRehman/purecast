@@ -100,6 +100,12 @@ The `CastSender` class in the PureCast package is a comprehensive tool for inter
 
 13. **get castSession:** Getter for the current `CastSession`.
 
+14. **setPlayBackRate()** Setter for the playback rate of the current playing `CastMedia`.
+
+15. **setTrackId()** Setter for the current trackId.
+
+16. **clearTrackId()** Clears the current trackId.
+
 ### Stream Controllers
 
 This class also includes two public `StreamController` objects. These controllers are used for broadcasting updates about the Chromecast session and media status to any listeners that may be interested in these events.

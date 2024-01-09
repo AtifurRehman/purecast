@@ -195,14 +195,14 @@ class CastSender extends Object {
     _castMediaAction('SET_PLAYBACK_RATE', map);
   }
 
-  void setSubtitles(int trackId) {
+  void setTrackId(int trackId) {
     Map<String, dynamic> map = {
       'activeTrackIds': [trackId]
     };
     _castMediaAction('EDIT_TRACKS_INFO', map);
   }
 
-  void disableSubtitles() {
+  void clearTrackId() {
     Map<String, dynamic> map = {'activeTrackIds': []};
     _castMediaAction('EDIT_TRACKS_INFO', map);
   }
