@@ -1,5 +1,5 @@
 name: purecast
-version: 1.0.0-rc.1
+version: 0.10.0
 description: A pure Dart package, to discover, connect and play videos in Chromecast devices
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 homepage: https://github.com/bariccattion/purecast

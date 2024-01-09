@@ -30,7 +30,7 @@ void main(List<String> arguments) async {
   // turn each rest argument string into a CastMedia instance
   final List<CastMedia> media = argResults.rest
       .map((String i) =>
-          CastMedia(contentId: i, metadata: CastMediaMetadata(title: i)))
+          CastMedia(url: i, metadata: CastMediaMetadata(title: i)))
       .toList();
 
   String host = argResults['host'];

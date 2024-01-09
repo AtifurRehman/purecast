@@ -1,21 +1,38 @@
 import 'package:mime/mime.dart';
 
+enum CastMediaMetadataType {
+  GENERIC,
+  MOVIE,
+  TV_SHOW,
+  MUSIC_TRACK,
+  PHOTO,
+}
+
 class CastMediaMetadata {
-  late int _metadataType;
+  CastMediaMetadataType type;
   String title;
+  String? albumName;
+  String? albumArtist;
+  String? artist;
+  DateTime? releaseDate;
   List<Uri>? images;
 
   /// Creates the [CastMediaMetadata] representing the metadata of a [CastMedia].
   /// Will be used while the [CastMedia] is loading.
   ///
+  /// * [type] - The [CastMediaMetadataType] type of the [CastMedia].
   /// * [title] - The title of the [CastMedia].
   /// * [images] - The list of images/thumbnails of the [CastMedia].
+  /// * [albumName] - The album name of the [CastMedia].
+  /// * [albumArtist] - The album artist of the [CastMedia].
+  /// * [artist] - The artist of the [CastMedia].
+  /// * [releaseDate] - The release date of the [CastMedia].
   ///
-  CastMediaMetadata({required this.title, this.images}) {
-    _metadataType = 0;
-    if (null == images) {
-      _metadataType = 3;
-    } else {
+  CastMediaMetadata(
+      {required this.title,
+      this.type = CastMediaMetadataType.GENERIC,
+      this.images}) {
+    if (images != null) {
       images!.forEach((element) {
         String? mimeType = lookupMimeType(element.toString());
         if (mimeType == null) {
@@ -28,17 +45,33 @@ class CastMediaMetadata {
     }
   }
   Map toChromeCastMap() {
-    List<Map>? imagesMap;
-    if (images != null) {
-      imagesMap = [];
-      images!.forEach((element) {
-        imagesMap!.add({'url': element.toString()});
-      });
-    }
-    return {
-      'metadataType': _metadataType,
+    Map metadata = {
+      'metadataType': type.index,
       'title': title,
-      if (imagesMap != null) 'images': imagesMap,
     };
+    if (images != null) {
+      List<Map>? imagesMap = [];
+      images!.forEach((element) {
+        imagesMap.add({'url': element.toString()});
+      });
+      metadata['images'] = imagesMap;
+    } else {
+      metadata['images'] = [
+        {'url': ''}
+      ];
+    }
+    if (releaseDate != null) {
+      metadata['releaseDate'] = releaseDate!.toIso8601String();
+    }
+    if (albumName != null) {
+      metadata['albumName'] = albumName;
+    }
+    if (albumArtist != null) {
+      metadata['albumArtist'] = albumArtist;
+    }
+    if (artist != null) {
+      metadata['artist'] = artist;
+    }
+    return metadata;
   }
 }

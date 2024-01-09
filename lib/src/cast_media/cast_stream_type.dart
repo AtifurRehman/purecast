@@ -1,6 +1,6 @@
 enum CastStreamType {
-  buffered('BUFFERED'),
-  live('LIVE');
+  BUFFERED('BUFFERED'),
+  LIVE('LIVE');
 
   const CastStreamType(this.value);
   final String value;
