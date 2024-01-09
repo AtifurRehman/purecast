@@ -18,18 +18,14 @@ This package is inspired by and based on the foundational work available at [ter
 This guide focuses on a basic usage of key classes from the PureCast package in Dart for Chromecast device integration.
 Please see the example app for a more complete CLI example.
 
----
-
 ## Step 1: Create a Cast Media Object
 
 Convert each media URL into a `CastMedia` instance. These instances represent the media you wish to cast.
 
 ```dart
 CastMediaMetadata metadata = CastMediaMetadata(title: "Loading Title Metadata");
-CastMedia media = CastMedia(contentId: i, metadata:metadata);
+CastMedia media = CastMedia(contentId: "http://commondatastorage.googleapis.com/gtv-videos-bucket/big_buck_bunny_1080p.mp4", metadata:metadata);
 ```
-
----
 
 ## Step 2: Specify Chromecast Device
 
@@ -46,8 +42,6 @@ CastDevice device =
         await CastDevice.create(host: host, port: port);
 ```
 
----
-
 ## Step 3: Instantiate the Chromecast Sender Class and Connect
 
 After instanciating the CastDevice instance, instantiate the CastSender object, responsible for controlling and listening for cast session updates
@@ -59,14 +53,13 @@ CastSender castSender = CastSender(
 await castSender.connect();
 ```
 
----
-
 ## Step 4: Load CastMedia playlist
 
 Now, you can load a CastMedia or multiple ones, and send it to the Chromecast
 
 ```dart
 castSender.load(media);
+castSender.loadPlaylist(mediaPlaylist);
 ```
 
 ---
@@ -75,7 +68,7 @@ castSender.load(media);
 
 ---
 
-## CastSender
+## CastSender Class
 
 The `CastSender` class in the PureCast package is a comprehensive tool for interacting with a Chromecast device. Here's a breakdown of its methods:
 
@@ -120,9 +113,7 @@ These enable real-time monitoring and responsive interaction with the Chromecast
 
 ---
 
----
-
-## _Example_ Usage Instructions
+## _Example_ Folder Usage Instructions
 
 ### Options
 
@@ -169,4 +160,8 @@ dart index.dart --host=192.168.1.1
 
 ---
 
-Feel free to contribute or report issues on our GitHub repository.
+## Contribution
+
+Feel free to [file an issue](https://github.com/bariccattion/purecast/issues/new) if you find a problem or [make pull requests](https://github.com/bariccattion/purecast/pulls).
+
+All contributions are more then welcome.
