@@ -1,3 +1,10 @@
+// Copyright 2013 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Example script to illustrate how to use the mdns package to discover the port
+// of a Dart observatory over mDNS.
+
 import 'package:multicast_dns/multicast_dns.dart';
 import 'package:purecast/purecast.dart';
 
@@ -6,7 +13,7 @@ class PureCast {
   static Future<List<CastDevice>> searchDevices() async {
     const String name = '_googlecast._tcp.local';
     final MDnsClient client = MDnsClient();
-    List<Future<CastDevice>> futures = [];
+    Set<Map> services = {};
     // Start the client with default options.
     await client.start();
     // Get the PTR recod for the service.
@@ -21,15 +28,22 @@ class PureCast {
         await for (IPAddressResourceRecord ip
             in client.lookup<IPAddressResourceRecord>(
                 ResourceRecordQuery.addressIPv4(srv.target))) {
-          futures.add(CastDevice.create(
-            defaultName: srv.name,
-            host: ip.address.address,
-            port: srv.port,
-          ));
+          services.add({
+            'name': srv.name,
+            'port': srv.port,
+            'ip': ip.address.address,
+          });
         }
       }
     }
     client.stop();
-    return Future.wait(futures);
+    return Future.wait([
+      for (Map service in services)
+        CastDevice.create(
+          defaultName: service['name'],
+          host: service['ip'],
+          port: service['port'],
+        )
+    ]);
   }
 }

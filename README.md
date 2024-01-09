@@ -66,9 +66,9 @@ castSender.loadPlaylist(mediaPlaylist);
 
 # Documentation
 
----
-
 ## CastSender Class
+
+### Methods
 
 The `CastSender` class in the PureCast package is a comprehensive tool for interacting with a Chromecast device. Here's a breakdown of its methods:
 
@@ -97,6 +97,8 @@ The `CastSender` class in the PureCast package is a comprehensive tool for inter
 12. **setVolume():** Sets the volume of the Chromecast device to the specified level, ensuring it doesn't exceed the maximum limit.
 
 13. **get castSession:** Getter for the current `CastSession`.
+
+### Stream Controllers
 
 This class also includes two public `StreamController` objects. These controllers are used for broadcasting updates about the Chromecast session and media status to any listeners that may be interested in these events.
 
