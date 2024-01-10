@@ -40,6 +40,8 @@ class CastSender extends Object {
 
   Timer? _mediaCurrentTimeTimer;
 
+  DateTime? _lastPong, _lastPing;
+
   CastSender(this.device) {
     _contentQueue = [];
     _castMediaStatusController = StreamController<CastMediaStatus?>.broadcast();
@@ -299,11 +301,13 @@ class CastSender extends Object {
     print('messageType: ${messageType.value}');
     switch (messageType) {
       case CastReceivedMessageType.PING:
+        _lastPing = DateTime.now();
         if (_heartbeatChannel != null)
           _heartbeatChannel!
               .sendMessage({'type': CastSentMessageType.PONG.value});
         break;
       case CastReceivedMessageType.PONG:
+        _lastPong = DateTime.now();
         break;
       case CastReceivedMessageType.CLOSE:
         _dispose();
@@ -451,8 +455,17 @@ class CastSender extends Object {
 
   Future<void> _startHeartbeatPingPong() async {
     await Future.delayed(const Duration(seconds: 1));
+    DateTime now = DateTime.now();
+    if (_lastPing != null && _lastPong != null) {
+      if (now.difference(_lastPing!).inSeconds > 30 ||
+          now.difference(_lastPong!).inSeconds > 30) {
+        print('Ping timeout');
+        _dispose();
+        return;
+      }
+    }
     _heartbeatChannel?.sendMessage({'type': CastSentMessageType.PING.value});
-    await Future.delayed(const Duration(seconds: 30));
+    await Future.delayed(const Duration(seconds: 15));
     return _startHeartbeatPingPong();
   }
 

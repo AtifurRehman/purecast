@@ -12,7 +12,6 @@ import 'cast_device/cast_device.dart';
 import 'mdns/resource_record.dart';
 
 class PureCast {
-  static const String gcastName = '_googlecast._tcp.local';
   PureCast() {}
   final MDnsClient client = MDnsClient(rawDatagramSocketFactory:
       (dynamic host, int port,
@@ -31,8 +30,8 @@ class PureCast {
       return value;
     });
   });
-  Stream<PtrResourceRecord> get _ptrStream => client.lookup<PtrResourceRecord>(
-      ResourceRecordQuery.serverPointer(gcastName),
+  Stream<PtrResourceRecord> _ptrStream() => client.lookup<PtrResourceRecord>(
+      ResourceRecordQuery.serverPointer(CastConstants.gcastName),
       timeout: const Duration(seconds: 10));
   Stream<SrvResourceRecord> _srvStream(PtrResourceRecord ptr) =>
       client.lookup<SrvResourceRecord>(
@@ -57,6 +56,7 @@ class PureCast {
           return value;
         });
       });
+
   StreamController<CastDevice> scanForDevices() {
     StreamController<CastDevice> castDeviceStreamController =
         StreamController.broadcast(onCancel: () => client.stop());
@@ -66,117 +66,59 @@ class PureCast {
   }
 
   Future<void> _onListen(StreamController<CastDevice> streamController) async {
-    print('Starting mDNS client');
+    await restartClient('Starting mDNS client');
+
+    // Listen to PTR records and wait for an event
+    PtrResourceRecord ptr =
+        await listenToStream<PtrResourceRecord>(() => _ptrStream(), 'PTR');
+
+    // Restart client and listen to SRV records
+    await restartClient('Starting mDNS client');
+    SrvResourceRecord srv =
+        await listenToStream<SrvResourceRecord>(() => _srvStream(ptr), 'SRV');
+
+    // Restart client and resolve IPs for SRV records
+    await restartClient('Starting mDNS client');
+    var ip = await listenToStream(() => _ipStream(srv), 'IP');
+    CastDevice.create(
+            defaultName: ptr.name, host: ip.address.address, port: srv.port)
+        .then(streamController.add);
+    client.stop();
+  }
+
+  Future<void> restartClient(String message) async {
+    client.stop();
+    await Future.delayed(Duration(milliseconds: CastConstants.mdnsDelay));
+    print(message);
     await _startClient;
     print('mDNS client started');
-    Stream<PtrResourceRecord> ptrStream = _ptrStream;
-    late StreamSubscription ptrSub;
-    Map<String, PtrResourceRecord> ptrMap = {};
-    ptrSub = ptrStream.listen((event) {
-      print('PTR: ${event.toString()}');
-      ptrMap[event.domainName] = event;
-    });
-    // To match the 10 second timeout in the PTR query
-    int ticks = 100;
-    while (ptrMap.isEmpty || ticks > 10) {
-      ticks--;
-      await Future.delayed(Duration(milliseconds: 100));
-      ticks % 10 == 0 ? print('Waiting for PTR') : null;
-      if (ticks == 0 && ptrMap.isEmpty) {
-        print('PTR timeout, restarting PTR stream');
-        ticks = 100;
-        ptrSub.cancel();
-        client.stop();
-        await _startClient;
-        ptrStream = _ptrStream;
-        ptrSub = ptrStream.listen((event) {
-          print('PTR: ${event.toString()}');
-          ptrMap[event.domainName] = event;
-        });
-      }
+  }
+
+  Future<T> listenToStream<T>(
+      Stream<T> Function() getStream, String logPrefix) async {
+    T? result;
+    StreamSubscription? sub;
+    int ticks = CastConstants.maxTicks;
+
+    void onData(T event) {
+      print('$logPrefix: ${event.toString()}');
+      result = event;
+      sub?.cancel();
     }
-    ptrSub.cancel();
-    print(
-        'PTRs: ${ptrMap.values.fold("", (previousValue, element) => "$previousValue, ${element.toString()}").toString()}');
-    // This poor guy gets tired : ( we need to give him a break
-    client.stop();
-    await Future.delayed(Duration(milliseconds: 50));
-    print('Starting mDNS client');
-    await _startClient;
-    print('mDNS client started');
-    Map<PtrResourceRecord, SrvResourceRecord> srvMap = {};
-    for (PtrResourceRecord ptr in ptrMap.values) {
-      print('Getting SRV for PTR: ${ptr.toString()}');
-      SrvResourceRecord? srv;
-      Stream<SrvResourceRecord> srvStream = _srvStream(ptr);
-      late StreamSubscription srvSub;
-      srvSub = srvStream.listen((event) {
-        print('SRV: ${event.toString()}');
-        srv = event;
-        srvSub.cancel();
-      });
-      int ticks = 100;
-      while (srv == null) {
-        ticks--;
-        await Future.delayed(Duration(milliseconds: 100));
-        ticks % 10 == 0 ? print('Waiting for SRV') : null;
-        if (ticks == 0) {
-          print('SRV timeout, restarting SRV stream');
-          ticks = 100;
-          srvSub.cancel();
-          srvStream = _srvStream(ptr);
-          srvSub = srvStream.listen((event) {
-            print('SRV: ${event.toString()}');
-            srv = event;
-            srvSub.cancel();
-          });
-        }
-      }
-      srvSub.cancel();
-      print('SRV: ${srv.toString()}');
-      srvMap[ptr] = srv!;
+
+    sub = getStream().listen(onData);
+    while (result == null && ticks > 0) {
+      await Future.delayed(Duration(milliseconds: CastConstants.mdnsDelay));
+      if (--ticks % 10 == 0) print('Waiting for $logPrefix');
     }
-    // Sleepy again
-    client.stop();
-    await Future.delayed(Duration(milliseconds: 50));
-    print('Starting mDNS client');
-    await _startClient;
-    print('mDNS client started');
-    for (MapEntry<PtrResourceRecord, SrvResourceRecord> ptrSrvPair
-        in srvMap.entries) {
-      print('Getting IP for SRV: ${ptrSrvPair.value.toString()}');
-      IPAddressResourceRecord? ip;
-      Stream<IPAddressResourceRecord> ipStream = _ipStream(ptrSrvPair.value);
-      late StreamSubscription ipSub;
-      ipSub = ipStream.listen((event) {
-        print('IP: ${event.toString()}');
-        ip = event;
-        ipSub.cancel();
-      });
-      int ticks = 100;
-      while (ip == null) {
-        ticks--;
-        await Future.delayed(Duration(milliseconds: 100));
-        ticks % 10 == 0 ? print('Waiting for IP') : null;
-        if (ticks == 0) {
-          print('IP timeout, restarting IP stream');
-          ticks = 100;
-          ipSub.cancel();
-          ipStream = _ipStream(ptrSrvPair.value);
-          ipSub = ipStream.listen((event) {
-            print('IP: ${event.toString()}');
-            ip = event;
-            ipSub.cancel();
-          });
-        }
-      }
-      ipSub.cancel();
-      CastDevice.create(
-              defaultName: ptrSrvPair.key.name,
-              host: ip!.address.address,
-              port: ptrSrvPair.value.port)
-          .then((device) => streamController.add(device));
+
+    sub.cancel();
+
+    if (result == null) {
+      print('$logPrefix timeout, restarting stream');
+      return listenToStream(getStream, logPrefix);
     }
-    client.stop();
+
+    return result!;
   }
 }
