@@ -1,92 +1,97 @@
-import 'dart:convert';
+import 'package:purecast/src/cast_device/cast_volume.dart';
 
-import 'package:purecast/purecast.dart';
+enum CastMediaPlayerState {
+  /// The player is in the IDLE state.
+  IDLE('IDLE'),
+
+  /// The player is in the PLAYING state.
+  PLAYING('PLAYING'),
+
+  /// The player is in the PAUSED state.
+  PAUSED('PAUSED'),
+
+  /// The player is in the BUFFERING state.
+  BUFFERING('BUFFERING'),
+
+  /// The player is in the LOADING state.
+  LOADING('LOADING'),
+
+  /// The player is in the FINISHED state.
+  FINISHED('FINISHED'),
+
+  /// The player is in the CANCELLED state.
+  CANCELLED('CANCELLED'),
+
+  /// The player is in the ERROR state.
+  ERROR('ERROR');
+
+  const CastMediaPlayerState(this.value);
+  final String value;
+
+  static CastMediaPlayerState? fromString(String? value, String? idleReason) {
+    if (value == null) return null;
+    switch (value) {
+      case 'PLAYING':
+        return CastMediaPlayerState.PLAYING;
+      case 'PAUSED':
+        return CastMediaPlayerState.PAUSED;
+      case 'BUFFERING':
+        return CastMediaPlayerState.BUFFERING;
+      case 'LOADING':
+        return CastMediaPlayerState.LOADING;
+      case 'IDLE':
+        if (idleReason == 'FINISHED') {
+          return CastMediaPlayerState.FINISHED;
+        }
+        if (idleReason == 'CANCELLED') {
+          return CastMediaPlayerState.CANCELLED;
+        }
+        if (idleReason == 'ERROR') {
+          return CastMediaPlayerState.ERROR;
+        }
+        return CastMediaPlayerState.IDLE;
+      default:
+        return CastMediaPlayerState.ERROR;
+    }
+  }
+}
 
 /// The current ChromeCast media status.
 class CastMediaStatus {
-  dynamic _sessionId;
+  late final dynamic mediaSessionId;
+  late final CastMediaPlayerState? playerState;
+  late final CastVolume? volume;
+  late final double? position;
+  late final Map? media;
 
-  final String? _nativeStatus;
-  final bool _isPlaying;
-  final bool _isPaused;
-  final bool _isMuted;
-  final bool _isIdle;
-  final bool _isFinished;
-  final bool _isCancelled;
-  final bool _hasError;
-  final bool _isLoading;
-  final bool _isBuffering;
-  final CastVolume? _volume;
-  final double? _position;
-  final Map? _media;
+  CastMediaStatus.fromChromeCastMap(Map mediaStatus) {
+    playerState = CastMediaPlayerState.fromString(
+        mediaStatus['playerState'], mediaStatus['idleReason']);
+    volume = mediaStatus['volume'] != null
+        ? CastVolume.fromChromeCastMap(mediaStatus['volume'])
+        : null;
+    position = mediaStatus['currentTime']?.toDouble();
+    media = mediaStatus['media'];
+    mediaSessionId = mediaStatus['mediaSessionId'];
+  }
 
-  CastMediaStatus.fromChromeCastMap(Map mediaStatus)
-      : _sessionId = mediaStatus['mediaSessionId'],
-        _nativeStatus = mediaStatus['playerState'],
-        _isIdle = 'IDLE' == mediaStatus['playerState'],
-        _isPlaying = 'PLAYING' == mediaStatus['playerState'],
-        _isPaused = 'PAUSED' == mediaStatus['playerState'],
-        _isMuted = null != mediaStatus['volume'] &&
-            true == mediaStatus['volume']['muted'],
-        _isLoading = 'LOADING' == mediaStatus['playerState'],
-        _isBuffering = 'BUFFERING' == mediaStatus['playerState'],
-        _isFinished = 'IDLE' == mediaStatus['playerState'] &&
-            'FINISHED' == mediaStatus['idleReason'],
-        _isCancelled = 'IDLE' == mediaStatus['playerState'] &&
-            'CANCELLED' == mediaStatus['idleReason'],
-        _hasError = 'IDLE' == mediaStatus['playerState'] &&
-            'ERROR' == mediaStatus['idleReason'],
-        _volume = null != mediaStatus['volume']
-            ? CastVolume.fromChromeCastMap(mediaStatus['volume'])
-            : null,
-        _position = mediaStatus['currentTime'].toDouble(),
-        _media = mediaStatus['media'];
-
-  dynamic get sessionId => _sessionId;
-
-  String? get nativeStatus => _nativeStatus;
-
-  bool get isIdle => _isIdle;
-
-  bool get isPlaying => _isPlaying;
-
-  bool get isFinished => _isFinished;
-
-  bool get isCancelled => _isCancelled;
-
-  bool get isPaused => _isPaused;
-
-  bool get isMuted => _isMuted;
-
-  bool get isLoading => _isLoading;
-
-  bool get isBuffering => _isBuffering;
-
-  bool get hasError => _hasError;
-
-  CastVolume? get volume => _volume;
-
-  double? get position => _position;
-
-  Map? get media => _media;
+  CastMediaStatus copy() {
+    return CastMediaStatus.fromChromeCastMap({
+      'playerState': this.playerState?.value,
+      'volume': CastVolume.fromChromeCastMap({
+        'level': this.volume?.level,
+        'muted': this.volume?.muted,
+        'stepInterval': this.volume?.stepInterval,
+        'controlType': this.volume?.controlType?.value,
+      }).toChromeCastMap(),
+      'currentTime': this.position,
+      'media': this.media,
+      'mediaSessionId': this.mediaSessionId,
+    });
+  }
 
   @override
   String toString() {
-    return jsonEncode({
-      'sessionId': _sessionId,
-      'nativeStatus': _nativeStatus,
-      'isFinished': _isFinished,
-      'isIdle': _isIdle,
-      'isPlaying': _isPlaying,
-      'isPaused': _isPaused,
-      'isMuted': _isMuted,
-      'isLoading': _isLoading,
-      'isBuffering': _isBuffering,
-      'isCancelled': _isCancelled,
-      'hasError': _hasError,
-      'volume': _volume,
-      'position': _position,
-      'media': _media,
-    });
+    return 'CastMediaStatus{playerState: $playerState, volume: $volume, position: $position, media: $media, mediaSessionId: $mediaSessionId}';
   }
 }

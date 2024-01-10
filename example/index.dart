@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -26,31 +26,44 @@ void main(List<String> arguments) async {
   } else {
     Logger.root.level = Level.OFF;
   }
-
-  // turn each rest argument string into a CastMedia instance
-  final List<CastMedia> media = argResults.rest
-      .map((String i) =>
-          CastMedia(url: i, metadata: CastMediaMetadata(title: i)))
-      .toList();
+  List<CastMedia> media = [];
+  if (!argResults.rest.isEmpty &&
+      argResults.rest
+          .fold<String>("", (previousValue, element) => previousValue + element)
+          .trim()
+          .isNotEmpty) {
+    media = argResults.rest
+        .map((String i) =>
+            CastMedia(url: i, metadata: CastMediaMetadata(title: i)))
+        .toList();
+  }
+  if (media.length == 0) {
+    media.add(CastMedia(
+        url:
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        metadata: CastMediaMetadata(title: 'Big Buck Bunny')));
+  }
 
   String host = argResults['host'];
   int? port = int.parse(argResults['port']);
   if ('' == host.trim()) {
     // search!
     print('Looking for ChromeCast devices...');
-
-    List<CastDevice> devices = await PureCast.searchDevices();
-    if (devices.length == 0) {
-      print('No devices found!');
-      return;
+    PureCast pureCast = PureCast();
+    List<CastDevice> devices = [];
+    DateTime start = DateTime.now();
+    StreamSubscription sub =
+        pureCast.scanForDevices().stream.listen((castDevice) {
+      print(
+          'Found device: ${castDevice.name} at ${castDevice.host}:${castDevice.port} ${castDevice.modelName} ${castDevice.googleModelType} ${castDevice.deviceType}');
+      devices.add(castDevice);
+    });
+    while (devices.length == 0) {
+      await Future.delayed(Duration(milliseconds: 100));
     }
-
+    print("Time taken: ${DateTime.now().difference(start).inSeconds}s");
+    sub.cancel();
     print("Found ${devices.length} devices:");
-    for (int i = 0; i < devices.length; i++) {
-      int index = i + 1;
-      CastDevice device = devices[i];
-      print("$index: ${device.name}");
-    }
 
     print("Pick a device (1-${devices.length}):");
 
@@ -64,9 +77,8 @@ void main(List<String> arguments) async {
 
     CastDevice pickedDevice = devices[choice - 1];
 
-    print("Connecting to device: $host:$port");
+    print("Connecting to device: ${pickedDevice.name}");
 
-    log.fine("Picked: $pickedDevice");
     startCasting(media, pickedDevice, argResults['append']);
   } else {
     print("Connecting to device: $host:$port");
@@ -78,103 +90,45 @@ void main(List<String> arguments) async {
 
 void startCasting(
     List<CastMedia> media, CastDevice device, bool? append) async {
-  log.fine('Start Casting');
-
-  // try to load previous state saved as json in saved_cast_state.json
-  Map? savedState;
-  try {
-    File savedStateFile = File("./saved_cast_state.json");
-    savedState = jsonDecode(await savedStateFile.readAsString());
-  } catch (e) {
-    // does not exist yet
-    log.warning('error fetching saved state' + e.toString());
-  }
-
   // instantiate the chromecast sender class
   final CastSender castSender = CastSender(
     device,
   );
-
-  // listen for cast session updates and save the state when
-  // the device is connected
-  castSender.castSessionController.stream
-      .listen((CastSession? castSession) async {
-    if (castSession!.isConnected) {
-      File savedStateFile = File('./saved_cast_state.json');
-      Map map = {
-        'time': DateTime.now().millisecondsSinceEpoch,
-      }..addAll(castSession.toMap());
-      await savedStateFile.writeAsString(jsonEncode(map));
-      log.fine('Cast session was saved to saved_cat_state.json.');
-    }
+  castSender.isConnectedStreamController.stream.listen((bool isConnected) {
+    log.info('Connection state changed to $isConnected');
   });
-
-  CastMediaStatus? prevMediaStatus;
-  // Listen for media status updates, such as pausing, playing, seeking, playback etc.
-  castSender.castMediaStatusController.stream
-      .listen((CastMediaStatus? mediaStatus) {
-    // show progress for example
-    if (null != prevMediaStatus &&
-        mediaStatus!.volume != prevMediaStatus!.volume) {
-      // volume just updated
-      log.info('Volume just updated to ${mediaStatus.volume}');
-    }
-    if (null == prevMediaStatus ||
-        mediaStatus?.position != prevMediaStatus?.position) {
-      // update the current progress
-      log.info('Media Position is ${mediaStatus?.position}');
-    }
-    prevMediaStatus = mediaStatus;
+  castSender.playerStateStreamController.stream
+      .listen((CastMediaPlayerState? state) {
+    log.info('Player state changed to ${state?.value}');
   });
-
-  bool connected = false;
-  bool didReconnect = false;
-
-  if (null != savedState) {
-    // If we have a saved state,
-    // try to reconnect
-    connected = await castSender.reconnect(
-      sourceId: savedState['sourceId'],
-      destinationId: savedState['destinationId'],
-    );
-    if (connected) {
-      didReconnect = true;
-    }
-  }
-
-  log.fine('connected? ${connected.toString()}');
-
-  // if reconnection failed or we never had a saved state to begin with
-  // connect to a fresh session.
-  if (!connected) {
-    connected = await castSender.connect();
-  }
-
-  if (!connected) {
-    log.warning('COUlD NOT CONNECT!');
-    return;
-  }
-
-  if (!didReconnect) {
-    // dont relaunch if we just reconnected, because that would reset the player state
-    castSender.launch();
-  }
-
-  // load CastMedia playlist and send it to the chromecast
-  castSender.loadPlaylist(media, append: append);
-
-  // Initiate key press handler
-  // space = toggle pause
-  // s = stop playing
-  // left arrow = seek current playback - 10s
-  // right arrow = seek current playback + 10s
-  stdin.echoMode = false;
-  stdin.lineMode = false;
-
-  stdin.asBroadcastStream().listen((List<int> data) {
-    _handleUserInput(castSender, data);
+  castSender.mediaInfoStreamController.stream.listen((Map? mediaInfo) {
+    log.info('Media info changed to ${mediaInfo?.toString()}');
   });
-//  stdin.asBroadcastStream().listen(_handleUserInput);
+  castSender.positionStreamController.stream.listen((double? position) {
+    log.info('Position changed to ${position?.toString()}');
+  });
+  castSender.volumeStreamController.stream.listen((double? volume) {
+    log.info('Volume changed to ${volume?.toString()}');
+  });
+  print('Connecting to chromecast...');
+  bool connected = await castSender.connect();
+  if (connected) {
+    print('Connected to chromecast!');
+    // load CastMedia playlist and send it to the chromecast
+    castSender.loadPlaylist(media, append: append);
+
+    // Initiate key press handler
+    // space = toggle pause
+    // s = stop playing
+    // left arrow = seek current playback - 10s
+    // right arrow = seek current playback + 10s
+    stdin.echoMode = false;
+    stdin.lineMode = false;
+
+    stdin.asBroadcastStream().listen((List<int> data) {
+      _handleUserInput(castSender, data);
+    });
+  }
 }
 
 void _handleUserInput(CastSender castSender, List<int> data) {

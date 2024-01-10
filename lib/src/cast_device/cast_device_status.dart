@@ -1,5 +1,5 @@
-import 'package:purecast/purecast.dart';
 import 'package:purecast/src/cast_device/cast_device_application.dart';
+import 'package:purecast/src/cast_device/cast_volume.dart';
 
 /// The current ChromeCast device status.
 class CastDeviceStatus {

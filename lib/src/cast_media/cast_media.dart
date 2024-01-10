@@ -2,18 +2,18 @@ import 'package:purecast/purecast.dart';
 import 'package:mime/mime.dart';
 
 class CastMedia {
-  String url;
-  CastMediaMetadata metadata;
+  final String url;
+  final CastMediaMetadata metadata;
   bool autoPlay = true;
   double position;
   double? playbackRate;
-  String? contentType;
+  late String? contentType;
   double? duration;
-  Map<String, dynamic>? customData;
-  CastMediaTextTrackStyle? textTrackStyle;
-  List<CastMediaTrack>? tracks;
-  List<int>? activeTrackIds;
-  CastStreamType streamType;
+  final Map<String, dynamic>? customData;
+  final CastMediaTextTrackStyle? textTrackStyle;
+  final List<CastMediaTrack>? tracks;
+  final List<int>? activeTrackIds;
+  final CastMediaStreamType streamType;
 
   /// Creates the [CastMedia] media that will be sent to the [CastDevice].
   ///
@@ -22,7 +22,7 @@ class CastMedia {
   /// * [contentType] - Optional. The MIME type of the media. If null, it will be automatically determined based on the [url].
   /// * [autoPlay] - If the content should start playing automatically.
   /// * [position] - The position in seconds where the content should start playing.
-  /// * [streamType] - The [CastStreamType] stream type of the content.
+  /// * [streamType] - The [CastMediaStreamType] stream type of the content.
   /// * [duration] - The duration of the content in seconds.
   /// * [customData] - Optional. Custom data.
   /// * [playbackRate] - Optional. The playback rate of the content.
@@ -42,10 +42,10 @@ class CastMedia {
     this.tracks,
     this.textTrackStyle,
     this.activeTrackIds,
-    this.streamType = CastStreamType.BUFFERED,
+    this.streamType = CastMediaStreamType.BUFFERED,
   }) {
     if (contentType == null) {
-      contentType = lookupMimeType(url);
+      this.contentType = lookupMimeType(url);
       if (contentType == null) {
         throw Exception('No content type found for $url');
       }
@@ -54,10 +54,8 @@ class CastMedia {
 
   Map toChromeCastMap() {
     return {
-      'type': 'LOAD',
       'autoPlay': autoPlay,
       'currentTime': position,
-      'activeTracks': [],
       'media': {
         'contentId': url,
         'contentType': contentType!,

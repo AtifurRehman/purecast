@@ -6,16 +6,12 @@ enum CastVolumeControlType {
   /// Describes types of volume control.
   const CastVolumeControlType(this.value);
   static CastVolumeControlType fromValue(String value) {
-    switch (value) {
-      case 'FIXED':
-        return CastVolumeControlType.FIXED;
-      case 'ATTENUATION':
-        return CastVolumeControlType.ATTENUATION;
-      case 'MASTER':
-        return CastVolumeControlType.MASTER;
-      default:
-        return CastVolumeControlType.ATTENUATION;
+    for (CastVolumeControlType type in CastVolumeControlType.values) {
+      if (type.value == value) {
+        return type;
+      }
     }
+    return CastVolumeControlType.ATTENUATION;
   }
 
   final String value;
@@ -25,34 +21,32 @@ class CastVolume {
   static const double _defaultIncrement = 0.05;
   double level;
   bool muted;
-  double increment;
   double stepInterval;
-  CastVolumeControlType controlType;
+  CastVolumeControlType? controlType;
   CastVolume({
-    this.level = -1,
+    this.level = -1.0,
     this.muted = false,
-    this.increment = _defaultIncrement,
     this.stepInterval = _defaultIncrement,
-    this.controlType = CastVolumeControlType.ATTENUATION,
+    this.controlType,
   });
 
   Map toChromeCastMap() {
     return {
       'level': level,
       'muted': muted,
-      'increment': increment,
       'stepInterval': stepInterval,
-      'controlType': controlType.value,
+      if (controlType != null) 'controlType': controlType!.value,
     };
   }
 
   static CastVolume fromChromeCastMap(dynamic map) {
     return CastVolume(
-      level: map['level'],
+      level: double.tryParse(map['level'].toString()) ?? -1.0,
       muted: map['muted'],
-      increment: map['increment'],
-      stepInterval: map['stepInterval'],
-      controlType: CastVolumeControlType.fromValue(map['controlType']),
+      stepInterval: map['stepInterval'] ?? _defaultIncrement,
+      controlType: map['controlType'] != null
+          ? CastVolumeControlType.fromValue(map['controlType'])
+          : null,
     );
   }
 }

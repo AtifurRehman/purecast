@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class CastDeviceApplicationNamespace {
   String name;
   CastDeviceApplicationNamespace({
@@ -12,23 +14,23 @@ enum CastDeviceApplicationType {
   /// Defines the text track edge (border) type.
   const CastDeviceApplicationType(this.value);
   static CastDeviceApplicationType fromValue(String value) {
-    switch (value) {
-      case 'WEB':
-        return WEB;
-      case 'ANDROID_TV':
-        return ANDROID_TV;
-      default:
-        return WEB;
+    for (CastDeviceApplicationType type in CastDeviceApplicationType.values) {
+      if (type.value == value) {
+        return type;
+      }
     }
+    return WEB;
   }
 
   final String value;
 }
 
 class CastDeviceApplication {
+  static const String defaultMediaReceiverAppId =
+      'CC1AD845'; // Default Media Receiver
   String appId;
   CastDeviceApplicationType appType;
-  String iconUrl;
+  String? iconUrl;
   String displayName;
   String? sessionId;
   String statusText;
@@ -40,7 +42,7 @@ class CastDeviceApplication {
   CastDeviceApplication({
     required this.appId,
     required this.appType,
-    required this.iconUrl,
+    this.iconUrl,
     required this.displayName,
     this.sessionId,
     required this.statusText,
@@ -56,7 +58,7 @@ class CastDeviceApplication {
       'appId': appId,
       'appType': appType.value,
       'displayName': displayName,
-      'iconUrl': iconUrl,
+      if (iconUrl != null) 'iconUrl': iconUrl,
       'isIdleScreen': isIdleScreen,
       'launchedFromCloud': launchedFromCloud,
       'namespaces': namespaces?.map((e) => e.name).toList(),
@@ -77,7 +79,7 @@ class CastDeviceApplication {
       launchedFromCloud: map['launchedFromCloud'],
       namespaces: map['namespaces'] != null
           ? List<CastDeviceApplicationNamespace>.from(map['namespaces']
-              .map((e) => CastDeviceApplicationNamespace(name: e)))
+              .map((e) => CastDeviceApplicationNamespace(name: e['name'])))
           : null,
       sessionId: map['sessionId'],
       statusText: map['statusText'],

@@ -4,24 +4,25 @@ class CastSession {
   String? sourceId;
   String? destinationId;
   CastMediaStatus? castMediaStatus;
-  CastDeviceStatus? castStatus;
+  CastDeviceStatus? castDeviceStatus;
   bool isConnected;
-  bool isReadyForMedia = false;
 
   CastSession(
       {this.sourceId,
       this.destinationId,
-      this.castStatus,
+      this.castDeviceStatus,
       this.isConnected = false});
 
   // create from chromecast map
-  void mergeWithChromeCastSessionMap(Map map) {
-    isConnected = true;
-    sourceId = map['sourceId'] ?? sourceId;
-    destinationId = map['transportId'] ?? map['sessionId'];
+  void mergeWithChromeCastSessionMap({
+    String? sourceId,
+    String? transportId,
+    String? sessionId,
+  }) {
+    this.isConnected = true;
+    this.sourceId = sourceId ?? this.sourceId;
+    this.destinationId = transportId ?? sessionId;
   }
-
-  // TODO: from apple tv map
 
   Map<String, String?> toMap() {
     return {

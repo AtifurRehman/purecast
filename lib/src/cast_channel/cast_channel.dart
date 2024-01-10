@@ -25,6 +25,7 @@ abstract class CastChannel {
         _namespace = namespace;
 
   void sendMessage(Map payload) {
+    print('Sending message: ${jsonEncode(payload)}');
     payload['requestId'] = _requestId;
 
     CastMessage castMessage = CastMessage();
@@ -40,13 +41,6 @@ abstract class CastChannel {
         List<int>.filled(4, 0, growable: false), bytes.lengthInBytes));
     Uint32List fullData =
         Uint32List.fromList(headers.toList()..addAll(bytes.toList()));
-
-    if ('PING' != payload['type']) {
-      log('Send: ${castMessage.toDebugString()}');
-      log('List: ${fullData.toList().toString()}');
-    } else {
-      log('PING');
-    }
 
     _socket!.add(fullData);
     _requestId++;

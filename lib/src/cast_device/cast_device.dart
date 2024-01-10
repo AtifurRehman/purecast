@@ -43,7 +43,7 @@ class CastDevice {
   /// * ve - Version (e.g. "04").
   final Map<String, Uint8List>? attr;
 
-  String? modelName;
+  late final String? modelName;
 
   CastDevice._({
     this.type,
@@ -77,11 +77,12 @@ class CastDevice {
 
   Future<void> getDeviceInfo(String? defaultName) async {
     String? nameToUse;
+    String? modelNameToUse;
     if (CastDeviceType.ChromeCast == deviceType) {
       if (null != attr && null != attr!['fn']) {
         nameToUse = utf8.decode(attr!['fn']!);
         if (null != attr!['md']) {
-          modelName = utf8.decode(attr!['md']!);
+          modelNameToUse = utf8.decode(attr!['md']!);
         }
       } else {
         // Attributes are not guaranteed to be set, if not set fetch them via the eureka_info url
@@ -96,25 +97,24 @@ class CastDevice {
           final uri = Uri.parse(
               'https://$host:8443/setup/eureka_info?params=name,device_info');
           http.Response response = await ioClient.get(uri);
-          Map deviceInfo = jsonDecode(response.body);
-
-          if (deviceInfo['name'] != null && deviceInfo['name'] != 'Unknown') {
-            nameToUse = deviceInfo['name'];
-          } else if (deviceInfo['ssid'] != null) {
-            nameToUse = deviceInfo['ssid'];
+          String body = response.body.toString();
+          Map<String, dynamic> eurekaInfo = jsonDecode(body);
+          if (eurekaInfo['name'] != null && eurekaInfo['name'] != 'Unknown') {
+            nameToUse = eurekaInfo['name'];
+          } else if (eurekaInfo['ssid'] != null) {
+            nameToUse = eurekaInfo['ssid'];
           }
-
+          Map<String, dynamic> deviceInfo = eurekaInfo['device_info'];
           if (deviceInfo['model_name'] != null) {
-            modelName = deviceInfo['model_name'];
+            modelNameToUse = deviceInfo['model_name'];
           }
         } catch (exception) {
           log(exception.toString());
         }
       }
     }
-    if (nameToUse == null) {
-      nameToUse = defaultName;
-    }
+    name = nameToUse ?? defaultName;
+    modelName = modelNameToUse ?? 'Unknown';
   }
 
   CastDeviceType get deviceType {

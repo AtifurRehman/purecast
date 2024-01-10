@@ -28,22 +28,29 @@ class CastMediaMetadata {
   /// * [artist] - The artist of the [CastMedia].
   /// * [releaseDate] - The release date of the [CastMedia].
   ///
-  CastMediaMetadata(
-      {required this.title,
-      this.type = CastMediaMetadataType.GENERIC,
-      this.images}) {
+  CastMediaMetadata({
+    required this.title,
+    this.type = CastMediaMetadataType.GENERIC,
+    this.images,
+    this.albumName,
+    this.albumArtist,
+    this.artist,
+    this.releaseDate,
+  }) {
+    _validateImages();
+  }
+
+  void _validateImages() {
     if (images != null) {
-      images!.forEach((element) {
+      for (var element in images!) {
         String? mimeType = lookupMimeType(element.toString());
-        if (mimeType == null) {
-          throw Exception('No content type found for $element');
+        if (mimeType == null || !mimeType.startsWith('image/')) {
+          throw Exception('Invalid or no content type found for $element');
         }
-        if (!mimeType.startsWith('image/')) {
-          throw Exception('Invalid content type found for $element');
-        }
-      });
+      }
     }
   }
+
   Map toChromeCastMap() {
     Map metadata = {
       'metadataType': type.index,
@@ -56,9 +63,7 @@ class CastMediaMetadata {
       });
       metadata['images'] = imagesMap;
     } else {
-      metadata['images'] = [
-        {'url': ''}
-      ];
+      metadata['images'] = [];
     }
     if (releaseDate != null) {
       metadata['releaseDate'] = releaseDate!.toIso8601String();
