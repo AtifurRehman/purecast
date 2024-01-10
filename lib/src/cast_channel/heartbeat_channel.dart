@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:purecast/src/cast_channel/cast_channel.dart';
 

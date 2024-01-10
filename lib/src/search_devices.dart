@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:purecast/src/utils/constants.dart';
 
@@ -47,7 +47,7 @@ class PureCast {
         return NetworkInterface.list(
           includeLinkLocal: true,
           type: type,
-          includeLoopback: false,
+          includeLoopback: true,
         ).then((value) {
           print(value.fold(
               "Interfaces: ",

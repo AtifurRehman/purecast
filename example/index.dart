@@ -37,11 +37,16 @@ void main(List<String> arguments) async {
             CastMedia(url: i, metadata: CastMediaMetadata(title: i)))
         .toList();
   }
+
   if (media.length == 0) {
     media.add(CastMedia(
         url:
-            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        metadata: CastMediaMetadata(title: 'Big Buck Bunny')));
+            'https://assets.club.ziyou.com.br/ziyou_video_samples/04-03-2022/1646395449399-004aaZiYouaaaRoupagemaaaAquelaaqueatodosaficamasabendoav1amp4.mp4',
+        metadata:
+            CastMediaMetadata(title: 'MOVIMENTE-SE COM A MÚSICA', images: [
+          Uri.https('assets.club.ziyou.com.br',
+              '/ziyou-upload-poster-images/04-03-2022/1646394835519-blob.webp')
+        ])));
   }
 
   String host = argResults['host'];

@@ -15,3 +15,4 @@ dependencies:
   mime: ^1.0.4
   color: ^3.0.0
   collection: ^1.18.0
+  universal_io: ^2.2.2

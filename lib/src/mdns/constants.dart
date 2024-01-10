@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 /// The IPv4 mDNS Address.
 final InternetAddress mDnsAddressIPv4 = InternetAddress('224.0.0.251');

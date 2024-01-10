@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
 
@@ -33,7 +33,6 @@ class CastSender extends Object {
   late StreamController<Map?> mediaInfoStreamController;
   late StreamController<double?> volumeStreamController;
 
-  late StreamController<CastMediaStatus?> _castMediaStatusController;
   late List<CastMedia> _contentQueue;
   CastMedia? _currentCastMedia;
   CastSession? _castSession;
@@ -44,8 +43,6 @@ class CastSender extends Object {
 
   CastSender(this.device) {
     _contentQueue = [];
-    _castMediaStatusController = StreamController<CastMediaStatus?>.broadcast();
-
     playerStateStreamController =
         StreamController<CastMediaPlayerState?>.broadcast();
     positionStreamController = StreamController<double?>.broadcast();
@@ -90,17 +87,8 @@ class CastSender extends Object {
     // now wait for the media to actually get a status?
     bool didReconnect = await _waitForMediaStatus();
     if (didReconnect) {
-      print('reconnecting successful!');
-      try {
-        CastMediaStatus? newMediaStatus = _castSession?.castMediaStatus;
-        _castMediaStatusController.add(_castSession!.castMediaStatus);
-        _upsertPublicStreams(oldMediaStatus, newMediaStatus, false);
-      } catch (e) {
-        print(
-            "Could not add the CastMediaStatus to the CastSession Stream Controller: events will not be triggered");
-        print(e.toString());
-        print("Closed? ${_castMediaStatusController.isClosed}");
-      }
+      CastMediaStatus? newMediaStatus = _castSession?.castMediaStatus;
+      _upsertPublicStreams(oldMediaStatus, newMediaStatus, false);
     }
     return didReconnect;
   }
@@ -109,9 +97,14 @@ class CastSender extends Object {
     _connectionChannel?.sendMessage({
       'type': CastSentMessageType.CLOSE.value,
     });
-
+    String? sessionId = _castSession?.castDeviceStatus?.applications
+        ?.firstWhereOrNull((element) =>
+            element.appId == CastDeviceApplication.defaultMediaReceiverAppId)
+        ?.sessionId;
     //TODO: Validate that this is the correct way to disconnect
-    _castReceiverAction(CastSentMessageType.STOP, null);
+    _castReceiverAction(CastSentMessageType.STOP, {
+      'sessionId': sessionId,
+    });
 
     _dispose();
   }
@@ -403,15 +396,6 @@ class CastSender extends Object {
                 'Player state is ${_castSession!.castMediaStatus!.playerState!.value}');
             break;
         }
-
-        try {
-          _castMediaStatusController.add(_castSession!.castMediaStatus);
-        } catch (e) {
-          print(
-              "Could not add the CastMediaStatus to the CastSession Stream Controller: events will not be triggered");
-          print(e.toString());
-          print("Closed? ${_castMediaStatusController.isClosed}");
-        }
       } else {
         print("Media status is empty");
         if (null == _currentCastMedia && _contentQueue.isNotEmpty) {
@@ -459,13 +443,14 @@ class CastSender extends Object {
     if (_lastPing != null && _lastPong != null) {
       if (now.difference(_lastPing!).inSeconds > 30 ||
           now.difference(_lastPong!).inSeconds > 30) {
-        print('Ping timeout');
+        print('Ping timeout!');
+        disconnect();
         _dispose();
         return;
       }
     }
     _heartbeatChannel?.sendMessage({'type': CastSentMessageType.PING.value});
-    await Future.delayed(const Duration(seconds: 15));
+    await Future.delayed(const Duration(seconds: 10));
     return _startHeartbeatPingPong();
   }
 
@@ -544,8 +529,6 @@ class CastSender extends Object {
   }
 
   void _dispose() {
-    //isConnectedStreamController.add(false);
-    _castMediaStatusController.close();
     playerStateStreamController.close();
     positionStreamController.close();
     mediaInfoStreamController.close();

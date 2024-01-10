@@ -3,10 +3,9 @@
 // found in the LICENSE file.
 
 import 'dart:convert';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'dart:typed_data';
 
-import 'package:meta/meta.dart';
 import 'constants.dart';
 import 'packet.dart';
 
@@ -68,7 +67,6 @@ abstract class ResourceRecordType {
 }
 
 /// Represents a DNS query.
-@immutable
 class ResourceRecordQuery {
   /// Creates a new ResourceRecordQuery.
   ///
@@ -171,7 +169,6 @@ class ResourceRecordQuery {
 }
 
 /// Base implementation of DNS resource records (RRs).
-@immutable
 abstract class ResourceRecord {
   /// Creates a new ResourceRecord.
   const ResourceRecord(this.resourceRecordType, this.name, this.validUntil);
