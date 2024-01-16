@@ -60,7 +60,7 @@ void main(List<String> arguments) async {
     StreamSubscription sub =
         pureCast.scanForDevices().stream.listen((castDevice) {
       print(
-          'Found device: ${castDevice.name} at ${castDevice.host}:${castDevice.port} ${castDevice.modelName} ${castDevice.googleModelType} ${castDevice.deviceType}');
+          'Found device: ${castDevice.name} at ${castDevice.host}:${castDevice.port} ${castDevice.model.name} ${castDevice.model.isGoogleCastDevice ? 'Google Cast Device' : 'AirPlay Device'} ${castDevice.model.googleCastDeviceModel?.name ?? castDevice.model.airPlayDeviceModel?.name}');
       devices.add(castDevice);
     });
     while (devices.length == 0) {

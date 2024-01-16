@@ -73,6 +73,8 @@ class CastSender extends Object {
     }
   }
 
+  /*
+  TODO: Reimplement this
   Future<bool> reconnect({String? sourceId, String? destinationId}) async {
     _castSession =
         CastSession(sourceId: sourceId, destinationId: destinationId);
@@ -91,7 +93,7 @@ class CastSender extends Object {
       _upsertPublicStreams(oldMediaStatus, newMediaStatus, false);
     }
     return didReconnect;
-  }
+  }*/
 
   void disconnect() {
     _connectionChannel?.sendMessage({

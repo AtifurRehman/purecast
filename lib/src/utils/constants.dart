@@ -5,8 +5,8 @@ class CastConstants {
   //See: https://github.com/dart-lang/sdk/issues/50172
   static const bool reuseAddress = true;
   static const bool reusePort = true;
-  static const String gcastName = '_googlecast._tcp.local';
-  static const String airplayName = '_airplay._tcp.local';
+  static const String gcastName = '_googlecast._tcp';
+  static const String airplayName = '_airplay._tcp';
   static const int mdnsDelay = 100;
   static const int maxTicks = 100;
 }

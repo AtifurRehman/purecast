@@ -30,32 +30,33 @@ class PureCast {
       return value;
     });
   });
+
+  Duration get _defaultTimeout => const Duration(seconds: 10);
+
   Stream<PtrResourceRecord> _ptrStream() => client.lookup<PtrResourceRecord>(
       ResourceRecordQuery.serverPointer(CastConstants.gcastName),
-      timeout: const Duration(seconds: 10));
+      timeout: _defaultTimeout);
   Stream<SrvResourceRecord> _srvStream(PtrResourceRecord ptr) =>
       client.lookup<SrvResourceRecord>(
           ResourceRecordQuery.service(ptr.domainName),
-          timeout: const Duration(seconds: 10));
+          timeout: _defaultTimeout);
   Stream<IPAddressResourceRecord> _ipStream(SrvResourceRecord srv) =>
       client.lookup<IPAddressResourceRecord>(
           ResourceRecordQuery.addressIPv4(srv.target),
-          timeout: const Duration(seconds: 10));
+          timeout: _defaultTimeout);
   Future<void> get _startClient => client.start(
       listenAddress: InternetAddress.anyIPv4,
-      interfacesFactory: (InternetAddressType type) {
-        return NetworkInterface.list(
-          includeLinkLocal: true,
-          type: type,
-          includeLoopback: true,
-        ).then((value) {
-          print(value.fold(
-              "Interfaces: ",
-              (e, f) =>
-                  "$e ${f.addresses.fold("", (previousValue, element) => "$previousValue ${element.toString()}")}"));
-          return value;
-        });
-      });
+      interfacesFactory: (InternetAddressType type) => NetworkInterface.list(
+            includeLinkLocal: true,
+            type: type,
+            includeLoopback: false,
+          ).then((value) {
+            print(value.fold(
+                "Interfaces: ",
+                (e, f) =>
+                    "$e ${f.addresses.fold("", (previousValue, element) => "$previousValue ${element.toString()}")}"));
+            return value;
+          }));
 
   StreamController<CastDevice> scanForDevices() {
     StreamController<CastDevice> castDeviceStreamController =
@@ -73,17 +74,17 @@ class PureCast {
         await listenToStream<PtrResourceRecord>(() => _ptrStream(), 'PTR');
 
     // Restart client and listen to SRV records
-    await restartClient('Starting mDNS client');
+    await restartClient('Refreshing mDNS client');
     SrvResourceRecord srv =
         await listenToStream<SrvResourceRecord>(() => _srvStream(ptr), 'SRV');
-
     // Restart client and resolve IPs for SRV records
-    await restartClient('Starting mDNS client');
+    await restartClient('Refreshing mDNS client');
     var ip = await listenToStream(() => _ipStream(srv), 'IP');
     CastDevice.create(
             defaultName: ptr.name, host: ip.address.address, port: srv.port)
-        .then(streamController.add);
-    client.stop();
+        .then((CastDevice device) {
+      streamController.add(device);
+    });
   }
 
   Future<void> restartClient(String message) async {
