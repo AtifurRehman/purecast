@@ -44,7 +44,7 @@ class PureCast {
       client.lookup<IPAddressResourceRecord>(
           ResourceRecordQuery.addressIPv4(srv.target),
           timeout: _defaultTimeout);
-  Future<void> get _startClient => client.start(
+  Future<void> _startClient() => client.start(
       listenAddress: InternetAddress.anyIPv4,
       interfacesFactory: (InternetAddressType type) => NetworkInterface.list(
             includeLinkLocal: true,
@@ -74,11 +74,11 @@ class PureCast {
         await listenToStream<PtrResourceRecord>(() => _ptrStream(), 'PTR');
 
     // Restart client and listen to SRV records
-    await restartClient('Refreshing mDNS client');
+    // await restartClient('Refreshing mDNS client');
     SrvResourceRecord srv =
         await listenToStream<SrvResourceRecord>(() => _srvStream(ptr), 'SRV');
     // Restart client and resolve IPs for SRV records
-    await restartClient('Refreshing mDNS client');
+    // await restartClient('Refreshing mDNS client');
     var ip = await listenToStream(() => _ipStream(srv), 'IP');
     CastDevice.create(
             defaultName: ptr.name, host: ip.address.address, port: srv.port)
@@ -91,7 +91,7 @@ class PureCast {
     client.stop();
     await Future.delayed(Duration(milliseconds: CastConstants.mdnsDelay));
     print(message);
-    await _startClient;
+    await _startClient();
     print('mDNS client started');
   }
 
