@@ -12,73 +12,90 @@ import 'cast_device/cast_device.dart';
 import 'mdns/resource_record.dart';
 
 class PureCast {
-  PureCast() {}
-  final MDnsClient client = MDnsClient(rawDatagramSocketFactory:
-      (dynamic host, int port,
-          {bool reuseAddress = CastConstants.reuseAddress,
-          bool reusePort = CastConstants.reusePort,
-          int ttl = CastConstants.hostTTL}) {
-    print(
-        "RawDatagramSocket.bind($host, $port, reuseAddress: $reuseAddress, reusePort: $reusePort, ttl: $ttl)");
-    return RawDatagramSocket.bind(host, port,
-            reuseAddress: reuseAddress, reusePort: reusePort, ttl: ttl)
-        .then((value) {
-      print("RawDatagramSocket: ${value.toString()}");
-      value.handleError((error) {
-        print("RawDatagramSocket error: $error");
-      });
-      return value;
-    });
-  });
+  bool _isCancelled = false;
+  MDnsClient _client;
+  PureCast()
+      : _client = MDnsClient(rawDatagramSocketFactory: (dynamic host, int port,
+            {bool reuseAddress = CastConstants.reuseAddress,
+            bool reusePort = CastConstants.reusePort,
+            int ttl = CastConstants.hostTTL}) {
+          print(
+              "RawDatagramSocket.bind($host, $port, reuseAddress: $reuseAddress, reusePort: $reusePort, ttl: $ttl)");
+          return RawDatagramSocket.bind(host, port,
+                  reuseAddress: reuseAddress, reusePort: reusePort, ttl: ttl)
+              .then((value) {
+            print("RawDatagramSocket: ${value.toString()}");
+            value.handleError((error) {
+              print("RawDatagramSocket error: $error");
+            });
+            return value;
+          });
+        }) {}
 
   Duration get _defaultTimeout => const Duration(seconds: 10);
 
-  Stream<PtrResourceRecord> _ptrStream() => client.lookup<PtrResourceRecord>(
-      ResourceRecordQuery.serverPointer(CastConstants.gcastName),
-      timeout: _defaultTimeout);
-  Stream<SrvResourceRecord> _srvStream(PtrResourceRecord ptr) =>
-      client.lookup<SrvResourceRecord>(
-          ResourceRecordQuery.service(ptr.domainName),
-          timeout: _defaultTimeout);
-  Stream<IPAddressResourceRecord> _ipStream(SrvResourceRecord srv) =>
-      client.lookup<IPAddressResourceRecord>(
-          ResourceRecordQuery.addressIPv4(srv.target),
-          timeout: _defaultTimeout);
-  Future<void> _startClient() => client.start(
-      listenAddress: InternetAddress.anyIPv4,
-      interfacesFactory: (InternetAddressType type) => NetworkInterface.list(
-            includeLinkLocal: true,
-            type: type,
-            includeLoopback: false,
-          ).then((value) {
-            print(value.fold(
-                "Interfaces: ",
-                (e, f) =>
-                    "$e ${f.addresses.fold("", (previousValue, element) => "$previousValue ${element.toString()}")}"));
-            return value;
-          }));
+  Stream<PtrResourceRecord> _ptrStream() {
+    return _client.lookup<PtrResourceRecord>(
+        ResourceRecordQuery.serverPointer(CastConstants.gcastName),
+        timeout: _defaultTimeout);
+  }
+
+  Stream<SrvResourceRecord> _srvStream(PtrResourceRecord ptr) {
+    return _client.lookup<SrvResourceRecord>(
+        ResourceRecordQuery.service(ptr.domainName),
+        timeout: _defaultTimeout);
+  }
+
+  Stream<IPAddressResourceRecord> _ipStream(SrvResourceRecord srv) {
+    return _client.lookup<IPAddressResourceRecord>(
+        ResourceRecordQuery.addressIPv4(srv.target),
+        timeout: _defaultTimeout);
+  }
+
+  Future<void> _startClient() {
+    return _client.start(
+        listenAddress: InternetAddress.anyIPv4,
+        interfacesFactory: (InternetAddressType type) => NetworkInterface.list(
+              includeLinkLocal: true,
+              type: type,
+              includeLoopback: false,
+            ).then((value) {
+              print(value.fold(
+                  "Interfaces: ",
+                  (e, f) =>
+                      "$e ${f.addresses.fold("", (previousValue, element) => "$previousValue ${element.toString()}")}"));
+              return value;
+            }));
+  }
 
   StreamController<CastDevice> scanForDevices() {
     StreamController<CastDevice> castDeviceStreamController =
-        StreamController.broadcast(onCancel: () => client.stop());
+        StreamController.broadcast(onCancel: () {
+      _isCancelled = true;
+      _client.stop();
+    });
     castDeviceStreamController.onListen =
         () => _onListen(castDeviceStreamController);
     return castDeviceStreamController;
   }
 
   Future<void> _onListen(StreamController<CastDevice> streamController) async {
-    await restartClient('Starting mDNS client');
+    _isCancelled = false;
+    await _tryRestartClient('Starting mDNS client');
 
     // Listen to PTR records and wait for an event
+    if (_isCancelled) return;
     PtrResourceRecord ptr =
         await listenToStream<PtrResourceRecord>(() => _ptrStream(), 'PTR');
 
     // Restart client and listen to SRV records
     // await restartClient('Refreshing mDNS client');
+    if (_isCancelled) return;
     SrvResourceRecord srv =
         await listenToStream<SrvResourceRecord>(() => _srvStream(ptr), 'SRV');
     // Restart client and resolve IPs for SRV records
     // await restartClient('Refreshing mDNS client');
+    if (_isCancelled) return;
     var ip = await listenToStream(() => _ipStream(srv), 'IP');
     CastDevice.create(
             defaultName: ptr.name, host: ip.address.address, port: srv.port)
@@ -87,8 +104,8 @@ class PureCast {
     });
   }
 
-  Future<void> restartClient(String message) async {
-    client.stop();
+  Future<void> _tryRestartClient(String message) async {
+    _client.stop();
     await Future.delayed(Duration(milliseconds: CastConstants.mdnsDelay));
     print(message);
     await _startClient();
